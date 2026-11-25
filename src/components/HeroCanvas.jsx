@@ -17,6 +17,9 @@ const SMOOTH = 0.12 // per 60 fps frame: lower = silkier, higher = snappier
 const DISSOLVE_MS = 140
 const BIG_JUMP = 12 // degrees
 const IDLE_MS = 3500 // no pointer movement for this long: she looks at you, blinks and smiles
+const TILT_RANGE = 18 // degrees of phone tilt that count as a full turn
+const TILT_RECENTER = 0.004 // per sensor reading: slowly treats the way you hold the phone as centre
+const TILT_MOVE = 2.5 // degrees of change that count as "the phone is moving"
 
 const wrap = (a) => ((((a + 180) % 360) + 360) % 360) - 180
 
@@ -60,6 +63,8 @@ export default function HeroCanvas({ onReady, onBackground }) {
     let disposed = false
 
     const pointer = { x: 0, y: 0, active: false, last: 0 }
+    // phone tilt: on = sensor is giving readings; x/y = gaze target (-1..1); last = last real move
+    const tilt = { on: false, x: 0, y: 0, b0: null, g0: null, bAct: 0, gAct: 0, last: 0 }
     const gaze = { x: 0, y: 0, looking: false }
     // what is on screen: current still, plus the one it is dissolving from
     const shown = { img: null, angle: null, from: null, t0: 0, drawnAlpha: -1 }
@@ -152,10 +157,12 @@ export default function HeroCanvas({ onReady, onBackground }) {
 
       // idle: nobody has moved for a while (or the mouse left the window, or a phone was never
       // touched). She looks back at you; if the idle clip exists she blinks and smiles.
-      const idle = !pointer.active || t - pointer.last > IDLE_MS
+      const touchedRecently = pointer.active && t - pointer.last < IDLE_MS
+      const tiltedRecently = tilt.on && t - tilt.last < IDLE_MS
+      const idle = !touchedRecently && !tiltedRecently
       let tx = fx
       let ty = fy
-      if (!idle) {
+      if (touchedRecently && (!tiltedRecently || pointer.last > tilt.last)) {
         tx = pointer.x
         ty = pointer.y
       }
@@ -163,6 +170,10 @@ export default function HeroCanvas({ onReady, onBackground }) {
       // target gaze vector, screen up = +y, strength capped at 1
       let gx = (tx - fx) / (unit * REACH)
       let gy = (fy - ty) / (unit * REACH)
+      if (tiltedRecently && !(touchedRecently && pointer.last > tilt.last)) {
+        gx = tilt.x
+        gy = tilt.y
+      }
       const len = Math.hypot(gx, gy)
       if (len > 1) {
         gx /= len
@@ -250,6 +261,46 @@ export default function HeroCanvas({ onReady, onBackground }) {
     }
     const onQuery = () => useSet(phoneQuery.matches ? 'phone' : 'desktop')
 
+    // phone tilt: gamma = left/right, beta = forward/back. Tilt right, she looks right;
+    // tip the top away from you, she looks up. Centre drifts to however the phone is held.
+    const clamp = (v) => Math.max(-1, Math.min(1, v))
+    const onOrient = (e) => {
+      if (e.beta == null || e.gamma == null) return
+      if (tilt.b0 === null) {
+        tilt.b0 = tilt.bAct = e.beta
+        tilt.g0 = tilt.gAct = e.gamma
+      }
+      tilt.b0 += (e.beta - tilt.b0) * TILT_RECENTER
+      tilt.g0 += (e.gamma - tilt.g0) * TILT_RECENTER
+      tilt.x = clamp((e.gamma - tilt.g0) / TILT_RANGE)
+      tilt.y = clamp((tilt.b0 - e.beta) / TILT_RANGE)
+      tilt.on = true
+      if (Math.abs(e.gamma - tilt.gAct) + Math.abs(e.beta - tilt.bAct) > TILT_MOVE) {
+        tilt.gAct = e.gamma
+        tilt.bAct = e.beta
+        tilt.last = performance.now()
+      }
+    }
+    const coarse = window.matchMedia('(pointer: coarse)').matches
+    let listening = false
+    const listenTilt = () => {
+      if (listening) return
+      listening = true
+      window.addEventListener('deviceorientation', onOrient)
+    }
+    const DOE = window.DeviceOrientationEvent
+    const needsPermission = DOE && typeof DOE.requestPermission === 'function'
+    // iPhone: motion needs a yes from the visitor, which can only be asked on a tap
+    const askTilt = () => {
+      if (!needsPermission || listening) return
+      DOE.requestPermission()
+        .then((r) => r === 'granted' && listenTilt())
+        .catch(() => {})
+    }
+    if (import.meta.env.DEV) window.__heroTilt = onOrient // local testing only, never in the live build
+    if (coarse && DOE && !needsPermission) listenTilt()
+    if (coarse && needsPermission) window.addEventListener('pointerdown', askTilt, { passive: true })
+
     window.addEventListener('pointermove', toLocal, { passive: true })
     window.addEventListener('pointerdown', toLocal, { passive: true })
     document.addEventListener('pointerleave', onLeave)
@@ -263,6 +314,8 @@ export default function HeroCanvas({ onReady, onBackground }) {
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', toLocal)
       window.removeEventListener('pointerdown', toLocal)
+      window.removeEventListener('pointerdown', askTilt)
+      window.removeEventListener('deviceorientation', onOrient)
       document.removeEventListener('pointerleave', onLeave)
       window.removeEventListener('resize', onResize)
       phoneQuery.removeEventListener('change', onQuery)

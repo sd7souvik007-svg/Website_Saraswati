@@ -82,6 +82,18 @@ html:not(.custom-cursor) .cursor-dot, html:not(.custom-cursor) .cursor-ring { di
 .hero-dim { position: absolute; inset: 0; background: var(--burgundy); pointer-events: none; z-index: 3; }
 .hero-copy { z-index: 2; }
 
+/* phones: "tilt your phone" pill, shows for a few seconds then fades */
+.tilt-hint {
+  position: absolute; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 2;
+  transform: translateX(-50%); margin: 0; white-space: nowrap;
+  padding: 9px 16px; border-radius: 999px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #fff; background: rgba(70, 8, 14, 0.28); border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  animation: hint 7s ease forwards;
+}
+.tilt-hint span { color: var(--blush); margin-right: 4px; }
+@keyframes hint { 0% { opacity: 0; transform: translate(-50%, 8px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+
 /* flowers blooming along the cursor */
 .trail-layer { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
 .trail-bloom {

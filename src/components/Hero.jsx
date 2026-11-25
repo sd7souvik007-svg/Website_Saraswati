@@ -12,6 +12,13 @@ const rise = (d) => ({
 
 export default function Hero() {
   const [ready, setReady] = useState(false)
+  // phones: a small hint that tilting moves her (iPhone needs a tap first to allow motion)
+  const tiltHint = (() => {
+    if (typeof window === 'undefined' || !window.matchMedia('(pointer: coarse)').matches) return null
+    const DOE = window.DeviceOrientationEvent
+    if (!DOE) return null
+    return typeof DOE.requestPermission === 'function' ? 'Tap, then tilt your phone' : 'Tilt your phone'
+  })()
   const heroRef = useRef(null)
   const onReady = useCallback(() => setReady(true), [])
   const onBackground = useCallback((c) => {
@@ -27,6 +34,11 @@ export default function Hero() {
       <HeroCanvas onReady={onReady} onBackground={onBackground} />
       <BloomTrail hostRef={heroRef} />
       <motion.div className="hero-dim" style={{ opacity: dim }} aria-hidden />
+      {tiltHint && ready && (
+        <p className="tilt-hint" aria-hidden>
+          <span>✦</span> {tiltHint}
+        </p>
+      )}
       <div className={`hero-copy ${ready ? 'is-ready' : ''}`}>
         <motion.p className="hero-hi" {...rise(0.2)}>
           Hi, I'm
