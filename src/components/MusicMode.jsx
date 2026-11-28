@@ -17,8 +17,7 @@ function latestKick(kicks, time) {
   return kicks[low - 1]
 }
 
-function kickLevelAt([onset, strength], time) {
-  const age = time - onset
+function pulseLevel(age, strength) {
   if (age >= 0.32) return 0
   const attack = Math.min(age / 0.035, 1)
   const easedAttack = attack * attack * (3 - 2 * attack)
@@ -61,9 +60,13 @@ export default function MusicMode() {
       const afterDrop = elapsed >= DROP_TIME
       const nextStage = afterDrop ? 'drop' : 'intro'
       const kick = latestKick(kicks, elapsed)
-      const light = kick ? kickLevelAt(kick, elapsed) : 0
-      // Keep the accents tied to the song's beat grid, even where a kick drops out.
-      const beat = kick ? Math.round((kick[0] - DROP_TIME) / BEAT_DURATION) : 0
+      const kickLight = kick ? pulseLevel(elapsed - kick[0], kick[1]) : 0
+      const introBeat = Math.floor((elapsed - DROP_TIME) / BEAT_DURATION)
+      // The intro has no full kicks for several seconds. Start with a soft pulse
+      // on play, then follow the song grid up to the first measured kicks.
+      const introOnset = Math.max(0, DROP_TIME + introBeat * BEAT_DURATION)
+      const light = afterDrop ? kickLight : Math.max(kickLight, pulseLevel(elapsed - introOnset, 0.44))
+      const beat = afterDrop && kick ? Math.round((kick[0] - DROP_TIME) / BEAT_DURATION) : introBeat
       const level = light.toFixed(3)
       if (level !== lastLight || (level !== '0.000' && (beat !== lastBeat || nextStage !== stage))) {
         const downbeat = afterDrop && beat % 4 === 0
