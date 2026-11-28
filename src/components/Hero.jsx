@@ -16,15 +16,9 @@ export default function Hero() {
   const simulateTilt = import.meta.env.DEV && typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('phonePreview') &&
     !window.matchMedia('(pointer: coarse)').matches
-  // phones: a small hint that tilting moves her (iPhone needs a tap first to allow motion)
-  const tiltHint = (() => {
-    if (typeof window === 'undefined' || !window.matchMedia('(pointer: coarse)').matches) return null
-    const DOE = window.DeviceOrientationEvent
-    if (!DOE) return null
-    return typeof DOE.requestPermission === 'function' ? 'Tap, then tilt your phone' : 'Tilt your phone'
-  })()
-  // the "Stop tilt" button: on Android tilt starts by itself, on iPhone after the first tap
-  const [tiltOn, setTiltOn] = useState(() => !!tiltHint && tiltHint === 'Tilt your phone')
+  const supportsTilt = simulateTilt || (typeof window !== 'undefined' &&
+    window.matchMedia('(pointer: coarse)').matches && Boolean(window.DeviceOrientationEvent))
+  const [tiltOn, setTiltOn] = useState(false)
   useEffect(() => {
     const onState = (e) => e.detail && setTiltOn(!!e.detail.on)
     window.addEventListener('hero-tilt-state', onState)
@@ -47,12 +41,12 @@ export default function Hero() {
       <MusicMode />
       <BloomTrail hostRef={heroRef} />
       <motion.div className="hero-dim" style={{ opacity: dim }} aria-hidden />
-      {ready && (simulateTilt ? tiltOn : tiltHint && !tiltOn) && (
+      {ready && supportsTilt && (simulateTilt ? tiltOn : !tiltOn) && (
         <p className="tilt-hint" aria-hidden>
-          <span>✦</span> {simulateTilt ? 'Move your pointer to simulate tilt' : tiltHint}
+          <span>✦</span> {simulateTilt ? 'Move your pointer to simulate tilt' : 'Tap Start tilt to try it'}
         </p>
       )}
-      {(simulateTilt || tiltHint) && ready && (
+      {supportsTilt && ready && (
         <button className="tilt-btn" type="button" onClick={toggleTilt} aria-pressed={tiltOn}>
           {tiltOn ? 'Stop tilt' : 'Start tilt'}
         </button>

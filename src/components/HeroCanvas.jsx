@@ -454,6 +454,7 @@ export default function HeroCanvas({ onReady, onBackground, simulateTilt }) {
     }
 
     const toLocal = (e) => {
+      if (coarse && e.pointerType !== 'mouse') return
       if (simulateTilt && (!listening || e.target.closest?.('.tilt-btn'))) return
       const rect = canvas.getBoundingClientRect()
       pointer.x = e.clientX - rect.left
@@ -474,7 +475,7 @@ export default function HeroCanvas({ onReady, onBackground, simulateTilt }) {
     // tip the top away from you, she looks up. Centre drifts to however the phone is held.
     const clamp = (v) => Math.max(-1, Math.min(1, v))
     const onOrient = (e) => {
-      if (e.beta == null || e.gamma == null) return
+      if (!listening || e.beta == null || e.gamma == null) return
       if (tilt.b0 === null) {
         tilt.b0 = tilt.bAct = e.beta
         tilt.g0 = tilt.gAct = e.gamma
@@ -492,19 +493,17 @@ export default function HeroCanvas({ onReady, onBackground, simulateTilt }) {
       }
     }
     let listening = false
-    let userStopped = false // the visitor pressed "Stop tilt": do not turn it back on by itself
     const DOE = window.DeviceOrientationEvent
     const needsPermission = DOE && typeof DOE.requestPermission === 'function'
     const emitTilt = () =>
       window.dispatchEvent(new CustomEvent('hero-tilt-state', { detail: { supported: simulateTilt || !!(coarse && DOE), on: listening } }))
     const listenTilt = () => {
-      if (listening) return
+      if (disposed || listening) return
       listening = true
       if (!simulateTilt) window.addEventListener('deviceorientation', onOrient)
       emitTilt()
     }
     const stopTilt = () => {
-      userStopped = true
       if (listening) window.removeEventListener('deviceorientation', onOrient)
       listening = false
       tilt.on = false
@@ -514,26 +513,19 @@ export default function HeroCanvas({ onReady, onBackground, simulateTilt }) {
       if (simulateTilt) pointer.active = false
       emitTilt()
     }
-    // iPhone: motion needs a yes from the visitor, which can only be asked on a tap
-    const askTilt = () => {
-      if (!needsPermission || listening || userStopped) return
+    const startTilt = () => {
+      if (listening || (!simulateTilt && !(coarse && DOE))) return
+      if (simulateTilt || !needsPermission) {
+        listenTilt()
+        return
+      }
       DOE.requestPermission()
-        .then((r) => r === 'granted' && listenTilt())
+        .then((permission) => permission === 'granted' && listenTilt())
         .catch(() => {})
     }
-    const startTilt = () => {
-      userStopped = false
-      if (!simulateTilt && needsPermission) askTilt()
-      else listenTilt()
-    }
-    const onTiltSet = (e) => (e.detail && e.detail.on ? startTilt() : stopTilt())
+    const onTiltSet = (e) => (e.detail?.on ? startTilt() : stopTilt())
     window.addEventListener('hero-tilt-set', onTiltSet)
     if (import.meta.env.DEV) window.__heroTilt = onOrient // local testing only, never in the live build
-    if (coarse && DOE && !needsPermission) listenTilt()
-    const askTiltOnTap = (e) => {
-      if (!e.target.closest?.('.tilt-btn')) askTilt()
-    }
-    if (coarse && needsPermission) window.addEventListener('pointerdown', askTiltOnTap, { passive: true })
     emitTilt()
 
     window.addEventListener('pointermove', toLocal, { passive: true })
@@ -549,7 +541,6 @@ export default function HeroCanvas({ onReady, onBackground, simulateTilt }) {
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', toLocal)
       window.removeEventListener('pointerdown', toLocal)
-      window.removeEventListener('pointerdown', askTiltOnTap)
       window.removeEventListener('deviceorientation', onOrient)
       window.removeEventListener('hero-tilt-set', onTiltSet)
       document.removeEventListener('pointerleave', onLeave)
