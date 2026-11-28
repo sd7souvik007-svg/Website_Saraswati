@@ -12,6 +12,7 @@ Personal portfolio site for Saraswati More.
 - Text, links and contact details: `src/content.js`
 - Reels: `public/reels/` (one `.mp4` and one `.jpg` cover per reel, listed in `content.js`)
 - Portrait frames: `public/hero-v2/`. The site uses the reviewed desktop and Phone B assets by default.
+- Music Mode: `public/music/` contains the edited soundtrack and its beat cues.
 
 ## Run
 

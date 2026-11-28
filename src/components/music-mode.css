@@ -24,6 +24,26 @@
 }
 
 .music-toggle:focus-visible { outline: 2px solid #ffd7e5; outline-offset: 3px; }
+.music-volume {
+  position: fixed;
+  z-index: 55;
+  right: clamp(14px, 3vw, 42px);
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #f4e2ca7d;
+  border-radius: 999px;
+  background: #372624f2;
+  color: #fff1f5;
+  font: 500 12px/1 var(--sans);
+  backdrop-filter: blur(14px);
+}
+.music-volume input { width: clamp(60px, 20vw, 96px); min-height: 28px; margin: 0; accent-color: #ffc5b4; cursor: pointer; }
+.music-volume input:focus-visible { outline: 2px solid #ffd7e5; outline-offset: 2px; border-radius: 4px; }
+.music-volume span:last-child { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
 .music-status:not(:empty) {
   position: fixed;
   z-index: 56;
