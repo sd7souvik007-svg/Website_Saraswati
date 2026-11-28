@@ -1,24 +1,37 @@
-import { Petal } from './Flowers.jsx'
+import { useEffect, useRef, useState } from 'react'
 
-// A few petals drifting down the page, behind the cursor and above the sections.
-const PETALS = Array.from({ length: 11 }, (_, i) => ({
-  left: (i * 9.3 + 4) % 100,
-  dur: 16 + (i % 5) * 4,
-  delay: -(i * 3.1),
-  size: 12 + (i % 4) * 5,
-  color: ['#b3122a', '#d4334a', '#8f1022', '#e8a3a8'][i % 4],
-}))
+const colors = ['#f7c1ba', '#deb088', '#f4d6cb', '#c88880']
+const random = (min, max) => min + Math.random() * (max - min)
 
 export default function Petals() {
+  const layer = useRef(null)
+  const [petals] = useState(() => Array.from({ length: 9 }, (_, index) => ({
+    left: `${(index + random(0.14, 0.86)) * 100 / 9}%`,
+    width: `${random(7, 15)}px`,
+    color: colors[index % colors.length],
+    '--petal-duration': `${random(10, 18)}s`,
+    '--petal-delay': `${-random(0, 14)}s`,
+    '--petal-drift': `${random(-50, 50)}px`,
+    '--petal-turn': `${random(-215, 215)}deg`,
+  })))
+
+  useEffect(() => {
+    const element = layer.current
+    const observer = new IntersectionObserver(([entry]) => {
+      element.classList.toggle('is-in-view', entry.isIntersecting)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <div className="petals" aria-hidden>
-      {PETALS.map((p, i) => (
-        <span
-          key={i}
-          className="petal"
-          style={{ left: `${p.left}%`, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s`, width: p.size, height: p.size * 1.25 }}
-        >
-          <Petal color={p.color} />
+    <div className="petals" ref={layer} aria-hidden="true">
+      {petals.map((style, index) => (
+        <span className="petal-flight" key={index} style={style}>
+          <svg viewBox="0 0 40 50">
+            <path d="M20 48C2 34 2 10 20 2C38 10 38 34 20 48Z" fill="currentColor" />
+            <path d="M20 46C16 30 16 16 20 4" stroke="#0002" strokeWidth="1.2" fill="none" />
+          </svg>
         </span>
       ))}
     </div>

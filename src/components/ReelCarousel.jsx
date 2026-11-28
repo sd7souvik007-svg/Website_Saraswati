@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react'
 import { reels } from '../content.js'
 
 /*
@@ -54,13 +54,22 @@ function Card({ reel, angle, radius, focused, onHover, onOpen }) {
 export default function ReelCarousel() {
   const n = reels.length
   const step = 360 / n
-  const [rot, setRot] = useState(0)
   const [hovered, setHovered] = useState(null)
   const [open, setOpen] = useState(null)
   const [dims, setDims] = useState({ w: 250, r: 380 })
+  const [front, setFront] = useState(reels[0].id)
   const drag = useRef({ on: false, x: 0, start: 0, moved: 0 })
-  const rotRef = useRef(0)
+  const stageRef = useRef(null)
+  const rotation = useMotionValue(0)
+  const inView = useInView(stageRef)
+  const reducedMotion = useReducedMotion()
   const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+  useMotionValueEvent(rotation, 'change', (angle) => {
+    if (!coarse) return
+    const next = reels[((Math.round(-angle / step) % n) + n) % n].id
+    if (next !== front) setFront(next)
+  })
 
   useEffect(() => {
     const fit = () => {
@@ -73,36 +82,32 @@ export default function ReelCarousel() {
     return () => window.removeEventListener('resize', fit)
   }, [n])
 
-  // slow turn, paused while a card is hovered, dragged or open
+  // Keep rotation on a motion value so the cards do not rerender every frame.
   useEffect(() => {
+    if (!inView || reducedMotion || hovered || open) return
     let raf
     let last = performance.now()
     const loop = (t) => {
-      const dt = (t - last) / 1000
+      const dt = Math.min((t - last) / 1000, 0.05)
       last = t
-      if (!hovered && !drag.current.on && !open) {
-        rotRef.current -= dt * 9
-        setRot(rotRef.current)
-      }
+      if (!drag.current.on) rotation.set(rotation.get() - dt * 9)
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [hovered, open])
+  }, [hovered, inView, open, reducedMotion, rotation])
 
   // the card facing the viewer (used on touch screens, where there is no hover)
-  const front = reels[((Math.round(-rot / step) % n) + n) % n].id
-  const focusedId = hovered || (coarse ? front : null)
+  const focusedId = inView && !open ? hovered || (coarse && !reducedMotion ? front : null) : null
 
   const down = (e) => {
-    drag.current = { on: true, x: e.clientX, start: rotRef.current, moved: 0 }
+    drag.current = { on: true, x: e.clientX, start: rotation.get(), moved: 0 }
   }
   const move = (e) => {
     if (!drag.current.on) return
     const dx = e.clientX - drag.current.x
     drag.current.moved = Math.abs(dx)
-    rotRef.current = drag.current.start + dx * 0.25
-    setRot(rotRef.current)
+    rotation.set(drag.current.start + dx * 0.25)
   }
   const up = () => {
     drag.current.on = false
@@ -116,6 +121,7 @@ export default function ReelCarousel() {
     <div className="carousel">
       <div
         className="ring-stage"
+        ref={stageRef}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -123,7 +129,7 @@ export default function ReelCarousel() {
         onPointerLeave={up}
         style={{ '--card-w': `${dims.w}px` }}
       >
-        <div className="ring" style={{ transform: `translateZ(${-dims.r}px) rotateY(${rot}deg)` }}>
+        <motion.div className="ring" style={{ z: -dims.r, rotateY: rotation }}>
           {reels.map((r, i) => (
             <Card
               key={r.id}
@@ -135,7 +141,7 @@ export default function ReelCarousel() {
               onOpen={openReel}
             />
           ))}
-        </div>
+        </motion.div>
         <div className={`ring-dim ${focusedId ? 'on' : ''}`} aria-hidden />
       </div>
       <p className="carousel-hint">{coarse ? 'Swipe to spin · tap to watch' : 'Hover to preview · click to watch with sound · drag to spin'}</p>

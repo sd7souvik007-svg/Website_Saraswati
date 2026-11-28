@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Saraswati More · Phone Preview</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      body {
+        margin: 0;
+        min-height: max(844px, 100dvh);
+        display: grid;
+        place-items: center;
+        background: #21191d;
+      }
+
+      iframe {
+        display: block;
+        width: min(390px, 100%);
+        height: 844px;
+        border: 0;
+        background: #de1c0e;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe title="Saraswati More mobile layout"></iframe>
+    <script>
+      const options = new URLSearchParams(location.search)
+      const review = options.get('preview') === 'review'
+      const desktopIdle = review && options.get('idle') !== 'portrait'
+      if (review) document.title += desktopIdle ? ' B · Desktop Idle' : ' A · Portrait Idle'
+      const params = new URLSearchParams({ preview: review ? 'review' : '', phonePreview: '1' })
+      if (review && !desktopIdle) params.set('idle', 'portrait')
+      document.querySelector('iframe').src = `/?${params}`
+    </script>
+  </body>
+</html>

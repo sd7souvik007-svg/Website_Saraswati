@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import ReelCarousel from './ReelCarousel.jsx'
-import { Bloom, HangingBlossoms, Leaf } from './Flowers.jsx'
+import Petals from './Petals.jsx'
 import { collab, contact, dream, person } from '../content.js'
 
 const inView = (d = 0) => ({
@@ -13,70 +13,32 @@ const inView = (d = 0) => ({
 export function Portfolio() {
   return (
     <section className="portfolio" id="portfolio">
-      <Sparkles />
+      <Petals />
       <motion.p className="eyebrow light" {...inView()}>
         Portfolio
       </motion.p>
       <motion.h2 className="section-title light" {...inView(0.1)}>
-        My <em>reels</em>
+        Selected <em>reels</em>
       </motion.h2>
       <ReelCarousel />
       <a className="btn btn-glass small" href="/portfolio">
-        Open the portfolio on its own page
+        View reel portfolio
       </a>
     </section>
   )
 }
 
-export function Sparkles({ count = 26 }) {
-  return (
-    <div className="sparkles" aria-hidden>
-      {Array.from({ length: count }, (_, i) => (
-        <span
-          key={i}
-          style={{
-            left: `${(i * 37) % 100}%`,
-            top: `${(i * 53) % 100}%`,
-            animationDelay: `${(i % 7) * 0.6}s`,
-            fontSize: `${8 + (i % 4) * 4}px`,
-          }}
-        >
-          ✦
-        </span>
-      ))}
-    </div>
-  )
-}
-
-const PAINTED = [
-  { x: 4, y: 10, s: 120 }, { x: 86, y: 6, s: 90 }, { x: 90, y: 70, s: 140 }, { x: 2, y: 78, s: 80 },
-  { x: 70, y: 40, s: 60 }, { x: 22, y: 46, s: 50 },
-]
-
 export function Dream() {
   return (
     <section className="dream">
-      {PAINTED.map((b, i) => (
-        <div key={i} className="painted" style={{ left: `${b.x}%`, top: `${b.y}%` }} aria-hidden>
-          <Leaf size={b.s * 0.6} style={{ position: 'absolute', left: -b.s * 0.3, top: b.s * 0.7, transform: 'rotate(35deg)' }} />
-          <Bloom size={b.s} petals={i % 2 ? 5 : 6} color="#a8142c" light="#d9405a" center="#5a0f17" />
-        </div>
-      ))}
       <motion.p className="eyebrow" {...inView()}>
         {dream.kicker}
       </motion.p>
       <motion.h2 className="dream-title" {...inView(0.1)}>
-        <span className="script">{dream.title}</span>
+        {dream.title}
       </motion.h2>
-      <div className="dream-lines">
-        {dream.lines.map((l, i) => (
-          <motion.p key={i} {...inView(0.15 + i * 0.12)}>
-            {l}
-          </motion.p>
-        ))}
-      </div>
-      <motion.p className="dream-close" {...inView(0.5)}>
-        {dream.close}
+      <motion.p className="dream-copy" {...inView(0.15)}>
+        {dream.body}
       </motion.p>
     </section>
   )
@@ -84,10 +46,9 @@ export function Dream() {
 
 export function Collab() {
   return (
-    <section className="collab">
+    <section className="collab" id="collaborate">
       <motion.div className="collab-card" {...inView()}>
-        <Bloom size={160} className="collab-bloom" color="#7a1626" light="#a83244" center="#3d070d" />
-        <p className="eyebrow light">Work with me</p>
+        <p className="eyebrow light">Brand partnerships</p>
         <h2 className="section-title light">{collab.title}</h2>
         <p className="collab-body">{collab.body}</p>
         <ul className="chips">
@@ -97,27 +58,43 @@ export function Collab() {
         </ul>
         <div className="collab-actions">
           <a className="btn btn-solid" href="#contact">
-            Start a conversation
+            Get in touch
           </a>
-          <span className="muted">{collab.mediaKit}</span>
         </div>
       </motion.div>
     </section>
   )
 }
 
-const dev = import.meta.env.DEV
-
 function ContactPill({ label, value, href, icon }) {
-  if (!value && !dev) return null
+  if (!value) return null
   return (
-    <a className={`pill ${value ? '' : 'pill-empty'}`} href={value ? href : undefined} target={value ? '_blank' : undefined} rel="noreferrer">
-      <span className="pill-icon">{icon}</span>
+    <a className="pill" href={href} target={href.startsWith('https:') ? '_blank' : undefined} rel="noreferrer">
+      <span className="pill-icon" aria-hidden>{icon}</span>
       <span>
         <strong>{label}</strong>
-        <small>{value || 'add in content.js'}</small>
+        <small>{value}</small>
       </span>
     </a>
+  )
+}
+
+function WhatsAppSoon() {
+  return (
+    <div className="contact-soon">
+      <img
+        className="contact-doll"
+        src="/florals/contact-doll.webp"
+        alt=""
+        width="76"
+        height="84"
+        loading="lazy"
+      />
+      <div className="contact-bubble">
+        <small>WhatsApp</small>
+        <strong>Coming soon!</strong>
+      </div>
+    </div>
   )
 }
 
@@ -131,20 +108,18 @@ export function Contact() {
   }
   return (
     <section className="contact" id="contact">
-      <HangingBlossoms />
-      <div className="leaf-shadow" aria-hidden />
       <div className="contact-inner">
         <motion.p className="eyebrow" {...inView()}>
           Contact
         </motion.p>
         <motion.h2 className="contact-title" {...inView(0.1)}>
-          Let's <span className="script">talk</span>
+          Let’s <em>talk</em>
         </motion.h2>
         <motion.div className="pills" {...inView(0.2)}>
           <ContactPill
             label="Instagram"
             value={contact.instagram && `@${contact.instagram}`}
-            href={`https://instagram.com/${contact.instagram}`}
+            href={`https://www.instagram.com/${contact.instagram}`}
             icon={<svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" /><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor" /></svg>}
           />
           <ContactPill
@@ -160,7 +135,8 @@ export function Contact() {
             icon={<svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 20l1.3-4A8 8 0 1 1 8 19z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M9 9.5c.5 2 2.5 4 4.5 4.6l1-1.1 1.8.8c-.3 1-1.2 1.6-2.2 1.5C11 15 8.9 12.9 8.6 10.1 8.5 9 9.2 8.1 10.1 7.9l.8 1.8z" fill="currentColor" /></svg>}
           />
         </motion.div>
-        {(contact.email || dev) && (
+        {!contact.whatsapp && <WhatsAppSoon />}
+        {contact.email && (
           <motion.form className="contact-form" onSubmit={send} {...inView(0.3)}>
             <div className="row">
               <label>
@@ -173,7 +149,7 @@ export function Contact() {
               </label>
             </div>
             <label>
-              Message
+              Tell me about your project
               <textarea name="message" rows="4" required />
             </label>
             <button className="btn btn-solid" type="submit">
